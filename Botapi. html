@@ -1,0 +1,157 @@
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+
+
+
+
+
+<button id="google-login">Sign in with Google</button>
+
+
+
+
+
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+document.getElementById('google-login').addEventListener('click', () => {
+  auth.signInWithPopup(googleProvider)
+    .then(result => {
+      const user = result.user;
+      db.collection('users').doc(user.uid).set({
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        residence: "Your Default Location",
+        age: "Set default or prompt user"
+      });
+      console.log('User signed in:', user);
+    })
+    .catch(error => console.error('Error signing in:', error));
+});
+
+
+
+
+
+<div id="chat">
+  <div id="messages"></div>
+  <input type="text" id="message-input" placeholder="Type a message...">
+  <button id="send-message">Send</button>
+</div>
+
+
+
+
+const messagesRef = db.collection('messages');
+const messageInput = document.getElementById('message-input');
+
+document.getElementById('send-message').addEventListener('click', () => {
+  const message = messageInput.value;
+  messagesRef.add({
+    sender: auth.currentUser.uid,
+    text: message,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  messageInput.value = '';
+});
+
+messagesRef.orderBy('timestamp').onSnapshot(snapshot => {
+  const messagesDiv = document.getElementById('messages');
+  messagesDiv.innerHTML = ''; // Clear previous messages
+  snapshot.forEach(doc => {
+    const message = doc.data();
+    messagesDiv.innerHTML += `<p>${message.text}</p>`;
+  });
+});
+
+
+
+
+
+
+let typingTimeout;
+messageInput.addEventListener('keydown', () => {
+  db.collection('typingStatus').doc('bot').set({ isTyping: true });
+
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    db.collection('typingStatus').doc('bot').set({ isTyping: false });
+  }, 1000);
+});
+
+
+
+
+
+messagesRef.onSnapshot(snapshot => {
+  snapshot.forEach(doc => {
+    const message = doc.data();
+    const formattedText = twemoji.parse(message.text);
+    messagesDiv.innerHTML += `<p>${formattedText}</p>`;
+  });
+});
+
+
+
+<div id="video-call">
+  <video id="user-video" autoplay muted></video>
+  <video id="bot-video" src="bot_video.mp4" autoplay loop></video>
+</div>
+
+
+
+
+
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => {
+    document.getElementById('user-video').srcObject = stream;
+  })
+  .catch(err => console.error('Error accessing camera:', err));
+  
+  
+  
+  
+  
+  
+  
+firebase.messaging().getToken().then(token => {
+  console.log('Device token:', token);
+});
+
+
+
+
+<table id="user-list">
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Actions</th>
+  </tr>
+</table>
+
+
+
+
+
+db.collection('users').onSnapshot(snapshot => {
+  const userList = document.getElementById('user-list');
+  snapshot.forEach(doc => {
+    const user = doc.data();
+    userList.innerHTML += `<tr>
+      <td>${user.name}</td>
+      <td>${user.email}</td>
+      <td><button onclick="viewUser('${doc.id}')">View</button></td>
+    </tr>`;
+  });
+});
+
