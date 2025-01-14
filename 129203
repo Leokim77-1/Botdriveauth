@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Creation</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
+</head>
+<body>
+
+  <h1>Create Profile</h1>
+  <button id="google-login">Sign in with Google</button>
+  <div id="profile-form" style="display:none;">
+    <input type="text" id="name" placeholder="Enter your name">
+    <input type="email" id="email" placeholder="Enter your email">
+    <input type="file" id="profile-picture">
+    <button id="save-profile">Save Profile</button>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+    apiKey: "AIzaSyCU4xwkZr3_g2SIVbYBnoCIS6CO-YTa-KM",
+    authDomain: "bottst-e3e6b.firebaseapp.com",
+    projectId: "bottst-e3e6b",
+    storageBucket: "bottst-e3e6b.firebasestorage.app",
+    messagingSenderId: "621123930271",
+    appId: "1:621123930271:web:2c027ddd50195bb46cfaaa"
+  };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Google Authentication
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    document.getElementById('google-login').addEventListener('click', () => {
+      auth.signInWithPopup(googleProvider).then(result => {
+        const user = result.user;
+        document.getElementById('profile-form').style.display = 'block';
+      }).catch(error => console.error('Error signing in:', error));
+    });
+
+    // Upload Profile Picture to Google Drive and Save User Profile
+    document.getElementById('save-profile').addEventListener('click', () => {
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const file = document.getElementById('profile-picture').files[0];
+
+      if (file && name && email) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Data = reader.result.split(',')[1]; // Extract base64 data
+          // Call Google Drive API to upload file (you need OAuth2 authentication here)
+          uploadToGoogleDrive(base64Data, file.name).then(fileUrl => {
+            // Save profile in Firebase Firestore
+            db.collection('users').doc(auth.currentUser.uid).set({
+              name: name,
+              email: email,
+              profilePictureUrl: fileUrl,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              alert('Profile saved successfully!');
+            }).catch(error => console.error('Error saving profile:', error));
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please fill in all fields and upload a profile picture.');
+      }
+    });
+
+    // Function to upload a file to Google Drive
+    function uploadToGoogleDrive(base64Data, fileName) {
+      return new Promise((resolve, reject) => {
+        // Here you'd need to integrate the Google Drive API with OAuth2 for authentication
+        // Use Google Drive API to upload the file and get the file URL
+        // For now, we'll mock the process with a simple URL
+        resolve('https://drive.google.com/your-file-url');
+      });
+    }
+  </script>
+</body>
+</html>
